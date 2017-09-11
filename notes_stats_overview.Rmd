@@ -13,4 +13,145 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#
+## Basic Stats
+
+```{r}
+library(tidyverse)
+data(mtcars)
+```
+
+```{r}
+mean(mtcars$mpg)
+summary(mtcars$mpg)
+```
+
+```{r}
+table(mtcars$gear)
+```
+
+```{r}
+table(mtcars$gear, mtcars$am) #row then column
+```
+
+```{r}
+table(mtcars$gear, mtcars$am, mtcars$cyl) #you can go up to 3... 
+ftable(mtcars$gear, mtcars$am, mtcars$cyl)
+```
+
+```{r}
+prop.table(ftable(mtcars$gear, mtcars$am, mtcars$cyl))
+```
+
+```{r}
+mtcars %>%
+  group_by(gear) %>% 
+  summarise(mean(mpg), mean(hp))
+```
+
+
+## Correlation
+
+```{r}
+cor(mtcars$mpg, mtcars$disp)
+```
+
+```{r}
+cor(mtcars)
+```
+
+```{r}
+cov(mtcars)
+```
+
+## T-Test
+
+```{r}
+t.test(mtcars$mpg ~ mtcars$am )
+```
+
+```{r}
+t.test(mtcars$mpg[mtcars$am == 0], 
+       mtcars$mpg[mtcars$am == 1])
+```
+
+```{r}
+t1 <- t.test(mtcars$mpg ~ mtcars$am )
+names(t1)
+```
+
+```{r}
+t1$p.value
+```
+
+## Linear Model
+
+```{r, eval = FALSE}
+lm(y ~ x1 + x2 + x3, data = df)
+```
+
+```{r}
+r1 = lm(mpg ~ hp, data = mtcars)
+```
+
+```{r}
+summary(lm(mpg ~ hp, data = mtcars))
+summary(r1) # this is the same
+```
+
+These are different! 
+```{r}
+names(r1)
+names(summary(r1))
+```
+
+```{r}
+plot(mtcars$mpg ~ mtcars$hp)
+abline(r1)
+identify(mtcars$hp, mtcars$mpg, labels = rownames(mtcars))
+```
+
+This gives you a series of plots that are relevant for the regression.
+```{r}
+plot(r1)
+```
+
+```{r}
+r2 <- lm(mpg ~ hp + I(hp^2) + am + cyl, data = mtcars)
+summary(r2)
+```
+
+```{r}
+r2 <- lm(mpg ~ hp + poly(hp, 2) + am + cyl, data = mtcars)
+summary(r2)
+```
+
+```{r}
+r4 <- lm(mpg ~ -1 + poly(hp, 2) + am + cyl, data = mtcars) #the -1 takes out the intercept
+summary(r4)
+```
+
+```{r}
+r4 <- lm(mpg ~ hp + I(hp^2) + am + I(factor(cyl)), data = mtcars) # make an indicator variable/treat cyl as factors
+summary(r4)
+```
+
+```{r}
+newvals <- data.frame(hp = seq(50, 250, 10),
+                      am = 0,
+                      cyl = 4)
+mpg_predict <- predict(r4, newvals)
+mpg_predict
+```
+
+```{r}
+plot(mpg_predict ~ newvals$hp, type = "l", lwd = 3, col = "red")
+points(mtcars$mpg ~ mtcars$hp)
+```
+
+
+```{r}
+r5 <- lm(mpg ~ hp*am, data = mtcars) # interation! 
+summary(r5)
+```
+
+
