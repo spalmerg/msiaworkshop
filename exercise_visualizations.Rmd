@@ -90,6 +90,49 @@ gapminder %>%
 ```
 
 
+# More exercises 
+
+```{r}
+library(babynames)
+data(babynames)
+```
+
+```{r}
+babynames <- mutate(babynames, initial = substr(name, 1,1))
+
+initial_props <-
+  babynames %>%
+  group_by(year, sex, initial) %>%
+  summarize(count = sum(n), totalprop = sum(prop)) %>%
+  ungroup()
+
+topnames <- babynames %>% 
+  filter(year>=1950) %>% 
+  group_by(name) %>% 
+  summarize(total=sum(n)) %>%
+  arrange(desc(total)) %>%
+  head(1000) %>%
+  inner_join(babynames) %>%
+  filter(year >= 1950) %>%
+  mutate(sex=recode(sex, "F"="Female", "M"="Male")) %>%
+  group_by(name, sex, total) %>%
+  summarize(sextotal=sum(n)) %>%
+  spread(key=sex, value=sextotal) %>%
+  mutate(ratio=(Male-Female)/total)
+
+```
+
+```{r}
+filter(initial_props, initial %in% c("A","E","I","O","U","Y")) %>% 
+  mutate(sex=factor(sex, levels=c("F","M"), labels=c("Female", "Male"))) %>%
+  ggplot(aes(y=totalprop, x=year, color=initial)) +
+  geom_line() + 
+  facet_wrap(~sex) +
+  labs(title="Baby Names First Initial", x="Year", y="Proportion of Babies") +
+  scale_color_discrete(name="First Initial") +
+  theme(axis.text.x = element_text(angle = -90, vjust=.5))
+```
+
 
 
 
