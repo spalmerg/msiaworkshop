@@ -1,0 +1,81 @@
+---
+title: "rmdexample"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#option control i
+```{r}
+x <- rpois(1, lambda = 8)
+
+if(x >= 10){
+  print("x is greater than or equal to 10")
+} else if (x > 5){
+  print("x is greater than 5")
+} else { print("x is less than 10")
+}
+x
+```
+
+```{r}
+x <- 4:12
+ifelse(x >= 10, "x is greater than or equal to 10",
+       ifelse(x>5, "x is greater than 5", 
+              "x is less than or equal to 5"))
+```
+
+```{r}
+for(i in 1:10){
+  print(i)
+}
+```
+
+```{r}
+for(i in LETTERS){
+  print(i)
+}
+```
+
+```{r}
+z <- 1
+while(z>0.1){
+  z <- runif(1)
+  print(z)
+}
+```
+
+```{r}
+x <- data.frame(first = LETTERS, second =LETTERS)
+apply(x, 1, paste, collapse = "-")
+```
+
+```{r}
+fahr_to_kelvin <- function(temp){
+  kelvin <- ((temp-32)*(5/9)) + 273.15
+  return(kelvin)
+}
+```
+
+```{r}
+fahr_to_kelvin(32)
+```
+
+```{r}
+increment <- function(a, step = 1){
+  return(a + step)
+}
+```
+
+```{r}
+increment(3)
+increment(3, 2)
+```
+
+```{r}
+apply(x,1,function(x){x[2]})
+```
+
+

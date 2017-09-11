@@ -1,0 +1,331 @@
+---
+title: "Visualizations"
+author: "Sarah Greenwood"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# ggplot workshop
+### Setup:
+Load libraries and data for the workshop. Tidyverse includes ggplot. 
+
+```{r}
+library(tidyverse)
+library(gapminder)
+library(readr)
+data(gapminder)
+```
+
+```{r}
+schooldata <- read_csv("~/team/bootcamp/R/schooldata.csv")
+
+```
+
+### Base R Histogram
+Automatically decides number of bins, labels, and returns counts.  
+```{r}
+#hist(schooldata$grade)
+```
+
+Adding breaks changes the number of bins.
+```{r}
+hist(schooldata$grade, breaks = 30)
+```
+
+```{r}
+hist(schooldata$grade, 
+     breaks = seq(.875, 4.125, .25), # this controls where the breaks are
+     xlim = c(0,4), # lower and upper limits of x axis
+     main = "Grade Distribution", # main title of graph
+     xlab = "Grade", # x label 
+     ylab = "Count") # y label
+```
+
+```{r}
+plot(x=gapminder$gdpPercap[gapminder$year==2002],
+     y=gapminder$lifeExp[gapminder$year==2002], 
+     log="x")
+pdf("plot1.pdf", width = 6, height = 4)
+
+#return plot
+dev.off() 
+```
+
+### ggplot 
+```{r}
+ggplot(schooldata, aes(grade)) +
+  geom_histogram(bins = 20)
+```
+
+```{r}
+ggplot(schooldata, aes(grade)) +
+  geom_histogram(binwidth = .25) + 
+  xlim(0, NA) + #this tells R to figure out the top bound itself
+  xlab("Grade") + # x label 
+  ylab("Count") + # y label
+  ggtitle("Grade Distribution") # graph title
+```
+
+The real power of ggplot comes when we want to split up our data. 
+
+```{r}
+ggplot(schooldata, aes(grade)) +
+  geom_histogram(binwidth = .25) + 
+  xlim(0, NA) +
+  xlab("Grade") + 
+  ylab("Count") + 
+  ggtitle("Grade Distribution") +
+  facet_grid(gender ~ .) # formula syntax "I'm going to split by gender..."
+```
+What if I want to remove the missing data? 
+
+```{r}
+schooldata %>% 
+  filter(!is.na(gender)) %>% # WAHOO piping is powerful
+  mutate(gender = factor(gender, # this changes the order/labels on the male/female part
+                         levels = c("M", "F"), 
+                         labels = c("Male", "Female"))) %>%
+  ggplot(aes(grade)) +
+  geom_histogram(binwidth = .25) + 
+  xlim(0, NA) +
+  xlab("Grade") + 
+  ylab("Count") + 
+  ggtitle("Grade Distribution") +
+  facet_grid(gender ~ .) 
+```
+
+#### Scatterplot
+
+```{r}
+gapminder %>%
+  filter(year==2002) %>%
+  ggplot(aes(x = gdpPercap, y = lifeExp)) + 
+  geom_point() + 
+  scale_x_log10() # this transforms the data
+```
+
+```{r}
+gapminder %>%
+  filter(year==2002) %>%
+  ggplot(aes(x = gdpPercap, y = lifeExp, color = continent)) + # adds color!
+  geom_point() + 
+  scale_x_log10() # this transforms the data
+
+ggsave("p1.pdf", width = 6, height = 4) # this saves the most recent plot
+```
+
+# Part 2 of Notes
+
+```{r}
+library(babynames)
+data(babynames)
+```
+
+```{r}
+babynames <- mutate(babynames, initial = substr(name, 1,1))
+
+initial_props <-
+  babynames %>%
+  group_by(year, sex, initial) %>%
+  summarize(count = sum(n), totalprop = sum(prop)) %>%
+  ungroup()
+
+initial_props %>% 
+  filter(sex == "F" & initial == "A") %>%
+  ggplot(aes(y = totalprop, x = year)) + 
+  geom_line()
+```
+
+```{r}
+initial_props %>% 
+  filter(initial == "A") %>%
+  ggplot(aes(y = totalprop, x = year, color = sex)) + # this changes the color
+  geom_line()
+```
+
+```{r}
+initial_props %>% 
+  filter(initial == "A") %>%
+  ggplot(aes(y = totalprop, x = year, linetype = sex)) + # differentiate sex by line type
+  geom_line()
+```
+
+```{r}
+initial_props %>% 
+  filter(initial == "A") %>%
+  ggplot(aes(y = totalprop, x = year)) + 
+  geom_line(aes(linetype = sex), color = "red", size = 1) # general plot characteristics, not mapping from the data
+```
+
+```{r}
+initial_props %>% 
+  ggplot(aes(y = totalprop, x = year, color = sex)) + 
+  geom_line() + 
+  facet_wrap(~initial) + 
+  scale_color_discrete(labels = c("Female", "Male"),
+                       name = "Sex") + 
+  scale_y_continuous(breaks = c(0, .1, .2)) +
+  theme(axis.text.x = element_text(angle=-90, vjust=0.5),
+        panel.grid.minor = element_blank()) +  #controls some of the visual elements of the plot 
+  labs(title = "Baby Names First Initial", 
+       x = "Year", 
+       y = "Proportion of Babies")
+```
+
+
+## Unisex Names
+The longest command known to mankind (jk but pretty long)
+
+```{r}
+# We want a new dataset that's just the top names since 1950
+
+topnames <- babynames %>%
+  filter(year >= 1950) %>%
+  group_by(name) %>%
+  summarize(total = sum(n)) %>%
+  arrange(desc(total)) %>%
+  slice(1:1000) %>%
+  inner_join(babynames) %>% # the inner join gets back the other columns 
+  filter(year >= 1950) %>%
+  mutate(sex = recode(sex, "F" = "Female", "M" = "Male")) %>%
+  group_by(name, sex, total) %>% 
+  summarize(sextotal = sum(n)) %>%
+  spread(key = sex, value = sextotal) %>%
+  mutate(ratio = (Male - Female)/total)
+
+```
+
+
+```{r}
+topnames %>%
+  filter(is.na(Male) | is.na(Female))
+
+# figure out which value is throwing the error... no one has ever named a boy Penelope
+```
+
+```{r}
+ggplot(topnames, aes(x = Male, y = Female, color = ratio)) + 
+  geom_point() + 
+  lims(x = c(0, 250000), y = c(0,250000)) + 
+  geom_abline() + 
+  scale_color_gradient(low = "pink", high = "blue", 
+                       name = "Sex Dominance", 
+                       breaks = c(.9, 0, -.9), 
+                       labels = c("Male", "Neutral", "Female")) + 
+  geom_text(aes(label = ifelse(abs(ratio) < .2, 
+                               name, 
+                               '')),
+            hjust = -.25, vjust = 0.5, color = "grey10", 
+            fontface = "bold", size = 3)
+```
+
+Let's do a histogram! We need to format the data in different ways, though. (Wider data -> Longer data)
+```{r}
+topnames2 <- gather(topnames, key = "sex", value = "sextotal", Male, Female) #changes data format back
+```
+
+Barchart
+```{r}
+
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x = name, y = sextotal, fill = sex)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "popular Unisex Names", x = "", y = "Count")
+```
+
+Proportion would probably be more telling than count...
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x = name, y = sextotal, fill = sex)) +
+  geom_bar(stat = "identity", position = "fill") + # position makes the proportions show up
+  geom_hline(yintercept = 0.5) + # same as line y = x but for historgram
+  labs(title = "popular Unisex Names", x = "", y = "Count")
+```
+
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x = name, y = sextotal, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") + # makes it not stacked
+  labs(title = "popular Unisex Names", x = "", y = "Count")
+```
+
+```{r}
+library(ggthemes)
+```
+
+```{r}
+topnames2 %>%
+  filter(abs(ratio) < .3 & !is.na(ratio)) %>%
+  ggplot(aes(x = name, y = sextotal, fill = sex)) +
+  geom_bar(stat = "identity") + # makes it not stacked
+  labs(title = "popular Unisex Names", x = "", y = "Count") + 
+  theme_minimal() + 
+  theme(panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank())
+```
+
+## Plotly 
+
+A library that has implementations in R and Python (maybe Matlab and others...). This makes a plot with interactive controls and gives you additional styling options. You can wrap plotly around a ggplot to give it additional, nice functionality. 
+
+```{r}
+library(plotly)
+```
+
+Prepare the data. 
+
+```{r}
+babynames <- mutate(babynames, first2 = substr(name, 1, 2))
+anames <- babynames %>% 
+  filter(initial == "A" & sex == "F") %>%
+  group_by(year, first2) %>%
+  summarize(count = sum(n), totalprop = sum(prop)) %>%
+  ungroup()
+```
+
+Make a plot. With this plot you can't really tell the difference between all of the lines because the colors are so similar. 
+```{r}
+anames %>% 
+  ggplot(aes(y=totalprop, x = year, color = first2)) +
+  geom_line()
+```
+
+`ggplotly` wraps around ggplot and makes the graph interactive/more useful! 
+```{r}
+anames %>% 
+  ggplot(aes(y=totalprop, x = year, color = first2)) +
+  geom_line()
+ggplotly()
+```
+
+
+```{r}
+plot_ly(anames, x=~year, y=~totalprop, color = ~first2, 
+        type = "scatter", mode = "lines")
+```
+
+Here's a really bad example of a 3D plot (something is messed up here... )
+```{r}
+plot_ly(anames, x=~year, z=~totalprop, y=~first2, color = ~first2, 
+        line = list(width = 4)) %>%
+          add_lines() %>%
+          layout(scene=list(xaxis = list(title = "Year"), 
+                            zaxis = list(title = "Proportion"), 
+                            yaxis = list(title = "Starting Letters")))
+```
+
+### Fun Facts
+
+- If you go Help > Cheatsheets in RStudio, you'll find a ton of nifty cheatsheets!
+- There's a theme for FiveThirtyEight `theme_fivethirtyeight()`
+- You can save plots as objects and then apply different themes to that object
+- ggplot doesn't do 3d graphics, but plotly does!
