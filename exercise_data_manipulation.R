@@ -71,11 +71,3 @@ gapminder %>%
 gapminder %>%
   filter(lifeExp == max(lifeExp) | lifeExp == min(lifeExp))
 
-
-
-
-
-
-
-
-
